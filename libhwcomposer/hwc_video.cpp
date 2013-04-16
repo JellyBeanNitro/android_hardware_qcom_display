@@ -20,6 +20,7 @@
 #include "hwc_qbuf.h"
 #include "hwc_video.h"
 #include "hwc_external.h"
+#include "qdMetaData.h"
 #include <mdp_version.h>
 
 namespace qhwc {
@@ -120,6 +121,10 @@ bool configPrimVid(hwc_context_t *ctx, hwc_layer_t *layer) {
         ovutils::setMdpFlags(mdpFlags,
                 ovutils::OV_MDP_BLEND_FG_PREMULT);
     }
+    MetaData_t *metadata = (MetaData_t *)hnd->base_metadata;
+    if ((metadata->operation & PP_PARAM_INTERLACED) && metadata->interlaced) {
+        ovutils::setMdpFlags(mdpFlags, ovutils::OV_MDP_DEINTERLACE);
+    }
 
     ovutils::eIsFg isFgFlag = ovutils::IS_FG_OFF;
     if (ctx->numHwLayers == 1) {
@@ -186,7 +191,10 @@ bool configExtVid(hwc_context_t *ctx, hwc_layer_t *layer) {
         ovutils::setMdpFlags(mdpFlags,
                 ovutils::OV_MDP_SECURE_OVERLAY_SESSION);
     }
-
+    MetaData_t *metadata = (MetaData_t *)hnd->base_metadata;
+    if ((metadata->operation & PP_PARAM_INTERLACED) && metadata->interlaced) {
+        ovutils::setMdpFlags(mdpFlags, ovutils::OV_MDP_DEINTERLACE);
+    }
     ovutils::eIsFg isFgFlag = ovutils::IS_FG_OFF;
     if (ctx->numHwLayers == 1) {
         isFgFlag = ovutils::IS_FG_SET;

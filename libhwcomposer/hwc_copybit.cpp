@@ -21,9 +21,12 @@
 #define DEBUG_COPYBIT 0
 #include <copybit.h>
 #include <genlock.h>
+#include <GLES/gl.h>
 #include "hwc_copybit.h"
 #include "comptype.h"
 #include "egl_handles.h"
+
+#define MAX_COPYBIT_RECT 12
 
 namespace qhwc {
 
@@ -94,7 +97,7 @@ bool CopyBit::canUseCopybitForRGB(hwc_context_t *ctx, hwc_layer_list_t *list) {
         unsigned int renderArea = getRGBRenderingArea(list);
             ALOGD_IF (DEBUG_COPYBIT, "%s:renderArea %u, fbArea %u",
                                   __FUNCTION__, renderArea, fbArea);
-        if (renderArea < (unsigned int) (ctx->dynThreshold * fbArea)) {
+        if (renderArea <= (unsigned int) (ctx->dynThreshold * fbArea)) {
             return true;
         }
     } else if ((compositionType & qdutils::COMPOSITION_TYPE_MDP)) {
@@ -186,6 +189,14 @@ bool CopyBit::draw(hwc_context_t *ctx, hwc_layer_list_t *list, EGLDisplay dpy,
              __FUNCTION__);
         return -1;
     }
+
+#ifndef ANCIENT_GL
+    // Invoke a glFinish if we are rendering any layers using copybit.
+    // We call glFinish instead of locking the renderBuffer because the
+    // GPU could take longer than the genlock timeout value to complete
+    // rendering
+    glFinish();
+#endif
 
     for (size_t i=0; i<list->numHwLayers; i++) {
         if (list->hwLayers[i].compositionType == HWC_USE_COPYBIT) {
@@ -389,7 +400,15 @@ int  CopyBit::drawLayerUsingCopybit(hwc_context_t *dev, hwc_layer_t *layer,
     // Copybit region
     hwc_region_t region = layer->visibleRegionScreen;
     region_iterator copybitRegion(region);
-
+    if (region.numRects > MAX_COPYBIT_RECT) {
+         hwc_rect display_rect = { layer->displayFrame.left,
+                                   layer->displayFrame.top,
+                                   layer->displayFrame.right,
+                                   layer->displayFrame.bottom };
+         hwc_region_t display_region = { 1, (hwc_rect_t const*)&display_rect };
+         region_iterator copyRegion(display_region);
+         copybitRegion = copyRegion;
+    }
     copybit->set_parameter(copybit, COPYBIT_FRAMEBUFFER_WIDTH,
                                           renderBuffer->width);
     copybit->set_parameter(copybit, COPYBIT_FRAMEBUFFER_HEIGHT,
@@ -397,7 +416,8 @@ int  CopyBit::drawLayerUsingCopybit(hwc_context_t *dev, hwc_layer_t *layer,
     copybit->set_parameter(copybit, COPYBIT_TRANSFORM,
                                               layer->transform);
     //TODO: once, we are able to read layer alpha, update this
-    copybit->set_parameter(copybit, COPYBIT_PLANE_ALPHA, 255);
+    copybit->set_parameter(copybit, COPYBIT_PLANE_ALPHA,
+                      (layer->blending == HWC_BLENDING_NONE) ? -1 : 255);
     copybit->set_parameter(copybit, COPYBIT_PREMULTIPLIED_ALPHA,
                       (layer->blending == HWC_BLENDING_PREMULT)?
                                              COPYBIT_ENABLE : COPYBIT_DISABLE);

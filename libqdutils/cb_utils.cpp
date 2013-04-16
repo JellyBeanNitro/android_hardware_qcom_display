@@ -89,8 +89,6 @@ int CBUtils::qcomuiClearRegion(Region region, EGLDisplay dpy){
         return -1;
     }
 
-
-
     android_native_buffer_t *renderBuffer =
           qdutils::eglHandles::getInstance().getAndroidNativeRenderBuffer(dpy);
 

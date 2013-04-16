@@ -313,6 +313,7 @@ enum eMdpFlags {
     OV_MDP_MEMORY_ID_TYPE_FB = MDP_MEMORY_ID_TYPE_FB,
     OV_MDP_BACKEND_COMPOSITION = MDP_BACKEND_COMPOSITION,
     OV_MDP_BLEND_FG_PREMULT = MDP_BLEND_FG_PREMULT,
+    OV_MDP_180_FLIP = MDP_FLIP_UD|MDP_FLIP_LR,
 };
 
 enum eZorder {
@@ -923,7 +924,6 @@ public:
 
     /* dump the state of the instance */
     void dump() const;
-
 private:
     /* helper enum for determine valid/invalid fd */
     enum { INVAL = -1 };

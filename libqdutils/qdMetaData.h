@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2012, Code Aurora Forum. All rights reserved.
+ * Copyright (c) 2012, The Linux Foundation. All rights reserved.
 
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -10,7 +10,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of Code Aurora Forum, Inc. nor the names of its
+ *   * Neither the name of The Linux Foundation nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -27,48 +27,17 @@
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef GRALLOC_IONALLOC_H
-#define GRALLOC_IONALLOC_H
+#ifndef _QDMETADATA_H
+#define _QDMETADATA_H
 
-#include <linux/msm_ion.h>
-#include "memalloc.h"
-#include "gr.h"
+typedef enum {
+    PP_PARAM_HSIC       = 0x0001,
+    PP_PARAM_SHARPNESS  = 0x0002,
+    PP_PARAM_INTERLACED = 0x0004,
+    PP_PARAM_VID_INTFC  = 0x0008
+} DispParamType;
 
-namespace gralloc {
+int setMetaData(private_handle_t *handle, DispParamType paramType, void *param);
 
-class IonAlloc : public IMemAlloc  {
-
-    public:
-    virtual int alloc_buffer(alloc_data& data);
-
-    virtual int free_buffer(void *base, size_t size,
-                            int offset, int fd);
-
-    virtual int map_buffer(void **pBase, size_t size,
-                           int offset, int fd);
-
-    virtual int unmap_buffer(void *base, size_t size,
-                             int offset);
-
-    virtual int clean_buffer(void*base, size_t size,
-                             int offset, int fd);
-
-    IonAlloc() { mIonFd = FD_INIT; }
-
-    ~IonAlloc() { close_device(); }
-
-    private:
-    int mIonFd;
-
-    int open_device();
-
-    void close_device();
-
-    mutable Locker mLock;
-
-};
-
-}
-
-#endif /* GRALLOC_IONALLOC_H */
+#endif /* _QDMETADATA_H */
 

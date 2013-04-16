@@ -132,8 +132,10 @@ void MDPComp::reset( hwc_context_t *ctx, hwc_layer_list_t* list ) {
     unsetMDPCompLayerFlags(ctx, list);
 
     sCurrentFrame.count = 0;
-    free(sCurrentFrame.pipe_layer);
-    sCurrentFrame.pipe_layer = NULL;
+    if(sCurrentFrame.pipe_layer) {
+        free(sCurrentFrame.pipe_layer);
+        sCurrentFrame.pipe_layer = NULL;
+    }
 
     //Reset MDP pipes
     sPipeMgr.reset();
@@ -276,10 +278,6 @@ int MDPComp::prepare(hwc_context_t *ctx, hwc_layer_t *layer,
         // commit - commit changes to mdp driver
         // queueBuffer - not here, happens when draw is called
 
-        ovutils::eTransform orient =
-            static_cast<ovutils::eTransform>(layer->transform);
-
-        ov.setTransform(orient, dest);
         ovutils::Whf info(hnd->width, hnd->height, hnd->format, hnd->size);
         ovutils::eMdpFlags mdpFlags = mdp_info.isVG ? ovutils::OV_MDP_PIPE_SHARE
                                                    : ovutils::OV_MDP_FLAGS_NONE;
@@ -291,6 +289,16 @@ int MDPComp::prepare(hwc_context_t *ctx, hwc_layer_t *layer,
             ovutils::setMdpFlags(mdpFlags,
                     ovutils::OV_MDP_BLEND_FG_PREMULT);
         }
+
+        if(layer->transform != HWC_TRANSFORM_ROT_180) {
+           ovutils::eTransform orient =
+               static_cast<ovutils::eTransform>(layer->transform);
+           ov.setTransform(orient, dest);
+        } else  {
+            ovutils::setMdpFlags(mdpFlags,
+                    ovutils::OV_MDP_180_FLIP);
+        }
+
 
         ovutils::PipeArgs parg(mdpFlags,
                                info,
@@ -365,9 +373,12 @@ bool MDPComp::is_doable(hwc_composer_device_t *dev, hwc_layer_list_t* list) {
         return false;
     }
 
-    //MDP composition is not efficient if rotation is needed.
+    //MDP composition is not efficient if layer neeeds
+    //MDP rotator
     for(unsigned int i = 0; i < list->numHwLayers; ++i) {
-        if(list->hwLayers[i].transform) {
+        // As MDP h/w supports flip operation, use MDP comp only for
+        // 180 transforms. Fail for any transform involving 90 (90, 270).
+        if(list->hwLayers[i].transform & HWC_TRANSFORM_ROT_90) {
                 ALOGD_IF(isDebug(), "%s: orientation involved",__FUNCTION__);
                 return false;
         }
@@ -601,6 +612,11 @@ bool MDPComp::setup(hwc_context_t* ctx, hwc_layer_list_t* list) {
 
     frame_info &current_frame = sCurrentFrame;
     current_frame.count = 0;
+
+    if(current_frame.pipe_layer) {
+        free(current_frame.pipe_layer);
+        current_frame.pipe_layer = NULL;
+    }
 
     if(!ctx) {
        ALOGE("%s: invalid context", __FUNCTION__);

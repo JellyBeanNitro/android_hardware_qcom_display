@@ -28,3 +28,8 @@ endif
 ifeq ($(TARGET_NO_HW_VSYNC),true)
     common_flags += -DNO_HW_VSYNC
 endif
+
+ifeq ($(BOARD_USES_QCOM_HARDWARE),true)
+    common_deps += $(TARGET_OUT_INTERMEDIATES)/KERNEL_OBJ/usr
+    kernel_includes += $(TARGET_OUT_INTERMEDIATES)/KERNEL_OBJ/usr/include
+endif
